@@ -1,0 +1,66 @@
+if(${TEXSTUDIO_ENABLE_TESTS})
+	find_package(Qt5 COMPONENTS Test REQUIRED)
+	set(HEADER_FILES ${HEADER_FILES}
+		${CMAKE_CURRENT_SOURCE_DIR}/execprogram_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qsearchreplacepanel_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/updatechecker_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentcursor_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentline_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentsearch_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/codesnippet_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexcompleter_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexeditorview_bm.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexeditorview_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexoutputfilter_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexparser_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexparsing_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/latexstyleparser_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/scriptengine_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qeditor_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/buildmanager_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/tablemanipulation_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/smallUsefulFunctions_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/utilsui_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/utilsversion_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/encoding_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/help_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/syntaxcheck_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/qcetestutil.h
+		${CMAKE_CURRENT_SOURCE_DIR}/testmanager.h
+		${CMAKE_CURRENT_SOURCE_DIR}/testutil.h
+		${CMAKE_CURRENT_SOURCE_DIR}/usermacro_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/git_t.h
+		${CMAKE_CURRENT_SOURCE_DIR}/structureview_t.h
+		PARENT_SCOPE
+	)
+	set(SOURCE_FILES ${SOURCE_FILES}
+		${CMAKE_CURRENT_SOURCE_DIR}/codesnippet_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/encoding_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/execprogram_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexcompleter_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexeditorview_bm.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexeditorview_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexoutputfilter_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexparser_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/latexparsing_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qcetestutil.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentcursor_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentline_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qdocumentsearch_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qeditor_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/qsearchreplacepanel_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/scriptengine_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/smallUsefulFunctions_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/structureview_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/syntaxcheck_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tablemanipulation_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/usermacro_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/testmanager.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/git_t.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/testutil.cpp
+		PARENT_SCOPE
+	)
+else()
+	message(STATUS "tests disabled as you wish.")
+	set(ADDITIONAL_DEFINITIONS ${ADDITIONAL_DEFINITIONS} -DNO_TESTS)
+endif()
