@@ -129,6 +129,7 @@ void SyntaxCheck::run()
 		//if(newRanges.isEmpty()) continue;
 		newLine.dlh->lockForWrite();
 		if (newLine.ticket == newLine.dlh->getCurrentTicket()) { // discard results if text has been changed meanwhile
+            newLine.dlh->setCookie(QDocumentLine::LEXER_COOKIE,QVariant::fromValue<TokenList>(tl));
             foreach (const Error &elem, newRanges){
                 if(!mSyntaxChecking && (elem.type!=ERR_spelling) && (elem.type!=ERR_highlight) ){
                     // skip all syntax errors
@@ -475,7 +476,7 @@ bool SyntaxCheck::stackContainsDefinition(const TokenStack &stack) const
 * \param stack token stack at start of line
 * \param ticket ticket number for current processed line
 */
-void SyntaxCheck::checkLine(const QString &line, Ranges &newRanges, StackEnvironment &activeEnv, QDocumentLineHandle *dlh, TokenList tl, TokenStack stack, int ticket,int commentStart)
+void SyntaxCheck::checkLine(const QString &line, Ranges &newRanges, StackEnvironment &activeEnv, QDocumentLineHandle *dlh, TokenList &tl, TokenStack stack, int ticket,int commentStart)
 {
 	// do syntax check on that line
 	int cols = containsEnv(*ltxCommands, "tabular", activeEnv);
@@ -497,7 +498,7 @@ void SyntaxCheck::checkLine(const QString &line, Ranges &newRanges, StackEnviron
 
     // check command-words
 	for (int i = 0; i < tl.length(); i++) {
-		Token tk = tl.at(i);
+        Token &tk = tl[i];
 		// ignore commands in definition arguments e.g. \newcommand{cmd}{definition}
 		if (stackContainsDefinition(stack)) {
 			Token top = stack.top();
@@ -582,6 +583,7 @@ void SyntaxCheck::checkLine(const QString &line, Ranges &newRanges, StackEnviron
             word = latexToPlainWordwithReplacementList(word, mReplacementList); //remove special chars
             if (speller->hideNonTextSpellingErrors && (containsEnv(*ltxCommands, "math", activeEnv)||containsEnv(*ltxCommands, "picture", activeEnv))){
                 word.clear();
+                tk.subtype=Token::formula;
             }
             if (!word.isEmpty() && !speller->check(word) ) {
                 if (word.endsWith('-') && speller->check(word.left(word.length() - 1)))
@@ -802,9 +804,9 @@ void SyntaxCheck::checkLine(const QString &line, Ranges &newRanges, StackEnviron
 				QSet<QString> translationMap=ltxCommands->possibleCommands.value("%columntypes");
 				QStringList res = LatexTables::splitColDef(option);
 				QStringList res2;
-				for(auto &elem: res){
+                for(const auto &elem: res){
 					bool add=true;
-					for(auto i:translationMap){
+                    for(const auto &i:translationMap){
 						if(i.left(1)==elem && add){
 							res2 << LatexTables::splitColDef(i.mid(1));
 							add=false;
