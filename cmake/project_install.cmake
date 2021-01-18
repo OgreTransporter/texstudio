@@ -21,6 +21,19 @@ if(WIN32)
 		COMMAND "${CMAKE_COMMAND}" ARGS -E copy_if_different ${TRANSLATION_RESULTS} "$<TARGET_FILE_DIR:texstudio>/translations"
 		WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 	)
+	if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+		get_filename_component(_qt_openssl_bundle "${_qt_bin_dir}/../../../Tools/OpenSSL/Win_x64/bin" ABSOLUTE)
+	else()
+		get_filename_component(_qt_openssl_bundle "${_qt_bin_dir}/../../../Tools/OpenSSL/Win_x86/bin" ABSOLUTE)
+	endif()
+	if(EXISTS ${_qt_openssl_bundle})
+		file(GLOB OPENSSL_DLL "${_qt_openssl_bundle}/*.dll")
+		foreach(_openssl_dll IN LISTS OPENSSL_DLL)
+			add_custom_command(TARGET texstudio POST_BUILD
+				COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different "${_openssl_dll}" "$<TARGET_FILE_DIR:texstudio>"
+			)
+		endforeach()
+	endif()
 	function(texstudio_copy_all_files source_dir target_dir)
 		file(GLOB TEMP_FILES ${source_dir}/*.*)
 		add_custom_command(TARGET texstudio POST_BUILD
