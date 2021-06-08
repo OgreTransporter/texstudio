@@ -2,7 +2,7 @@
 #include "latexdocument.h"
 
 
-StructureEntry::StructureEntry(LatexDocument *doc, Type newType): type(newType), level(0), valid(false), parent(nullptr), document(doc), columnNumber(0), parentRow(-1), lineHandle(nullptr), lineNumber(-1), m_contexts(Unknown)
+StructureEntry::StructureEntry(LatexDocument *doc, Type newType): type(newType), level(0), valid(false), expanded(false), parent(nullptr), document(doc), columnNumber(0), parentRow(-1), lineHandle(nullptr), lineNumber(-1), m_contexts(Unknown)
 {
 #ifndef QT_NO_DEBUG
 	Q_ASSERT(document);
@@ -87,10 +87,10 @@ int StructureEntry::getRealParentRow() const
 void StructureEntry::debugPrint(const char *message) const
 {
 	qDebug("%s %p", message, this);
-	qDebug("   level: %i", level);
-    qDebug("   type: %i", static_cast<int>(type));
-	qDebug("   line nr: %i", lineNumber);
-	qDebug("   title: %s", qPrintable(title));
+    qDebug()<<"   level: "<< level;
+    qDebug()<<"   type: "<< static_cast<int>(type);
+    qDebug()<<"   line nr: "<< lineNumber;
+    qDebug()<<"   title: " << title;
 }
 
 StructureEntryIterator::StructureEntryIterator(StructureEntry *entry)
@@ -134,9 +134,9 @@ StructureEntry *StructureEntryIterator::next()
 
 
 
-LatexDocumentsModel::LatexDocumentsModel(LatexDocuments &docs): documents(docs),
+LatexDocumentsModel::LatexDocumentsModel(LatexDocuments &docs): documents(docs), m_singleMode(false),
 	iconDocument(":/images/doc.png"), iconMasterDocument(":/images/masterdoc.png"), iconBibTeX(":/images/bibtex.png"), iconInclude(":/images/include.png"),
-	iconWarning(getRealIconCached("warning")), m_singleMode(false)
+    iconWarning(getRealIconCached("warning"))
 {
 	mHighlightIndex = QModelIndex();
 

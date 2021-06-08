@@ -1332,7 +1332,9 @@ void QEditor::print()
 	// TODO : create a custom print dialog, page range sucks, lines range would be better
 	QPrintDialog dialog(&printer, this);
 	dialog.setWindowTitle(tr("Print Source Code"));
-	dialog.setEnabledOptions(QPrintDialog::PrintToFile | QPrintDialog::PrintPageRange);
+#if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
+    dialog.setEnabledOptions(QPrintDialog::PrintToFile | QPrintDialog::PrintPageRange); //TODO Qt6 ??
+#endif
 
 	if ( dialog.exec() == QDialog::Accepted )
 	{
@@ -1576,7 +1578,7 @@ void QEditor::load(const QString& file, QTextCodec* codec)
 	if ( m_lineEndingsActions )
 	{
 		// TODO : update Conservative to report original line endings
-		static const QRegExp rx(" \\[\\w+\\]");
+        const QRegularExpression rx(" \\[\\w+\\]");
 		QAction *a = m_lineEndingsActions->actions().at(0);
 
 		if ( a )
@@ -2395,11 +2397,11 @@ QDocumentLine QEditor::lineAtPosition(const QPoint& p) const
 /*!
 	\return The cursor object nearest to the given viewport position
 */
-QDocumentCursor QEditor::cursorForPosition(const QPoint& p) const
+QDocumentCursor QEditor::cursorForPosition(const QPoint& p, bool disallowPositionBeyondLine) const
 {
 	//qDebug("cursor for : (%i, %i)", p.x(), p.y());
 
-	return m_doc ? m_doc->cursorAt(p) : QDocumentCursor();
+    return m_doc ? m_doc->cursorAt(p,disallowPositionBeyondLine) : QDocumentCursor();
 }
 
 /*!
@@ -2774,8 +2776,8 @@ void QEditor::commentSelection()
 			insertAtLineStart(m_cursor, txt);
 		else {
 			QDocumentSelection s = m_cursor.selection();
-			if ( s.end == 0 && s.startLine < s.endLine )
-				s.endLine--; //only change last line if there is selected text
+            if ( s.end == 0 && s.startLine < s.endLine )
+                s.endLine--; //only change last line if there is selected text
 			QDocumentCursor c(m_doc, s.startLine);
 			c.setSilent(true);
 			c.beginEditBlock();
@@ -2859,8 +2861,8 @@ void QEditor::toggleCommentSelection()
 	foreach (const QDocumentCursor &cursor, cursors()) {
 		if (cursor.hasSelection()) {
 			QDocumentCursor cur = cursor.selectionStart();
-			for (int i = 0; i < cursor.endLineNumber() - cursor.startLineNumber() + 1; i++) {
-				if (!cur.line().startsWith(commentMark)) {
+            for (int i = cursor.startLineNumber(); i <= cursor.endLineNumber() ; ++i) {
+                if (!cur.line().startsWith(commentMark) && (i<cursor.endLineNumber() || !cur.line().text().isEmpty())) { //special treatmenat of last line if empty
 					allCommented = false;
 					break;
 				}
@@ -3334,6 +3336,8 @@ void QEditor::keyPressEvent(QKeyEvent *e)
 				}
 				cursorMoveOperation(cur, op);
 				leftLine = cur.lineNumber() != curLine;
+                if( op == CursorEndOfLine || op == CursorStartOfLine)
+                    leftLine = true;
 			}
 
 			if ( leftLine || (m_curPlaceHolder >= 0 && m_curPlaceHolder < m_placeHolders.size() && m_placeHolders[m_curPlaceHolder].autoRemoveIfLeft && !m_placeHolders[m_curPlaceHolder].cursor.isWithinSelection(m_cursor)))
@@ -3878,7 +3882,7 @@ void QEditor::mouseReleaseEvent(QMouseEvent *e)
 		setFlag(MousePressed, false);
 
 		setClipboardSelection();
-	} else if (	e->button() == Qt::MidButton
+    } else if (	e->button() == Qt::MiddleButton
 				&& QApplication::clipboard()->supportsSelection()) {
 		setCursorPosition(mapToContents(e->pos()));
 		//setCursorPosition(viewport()->mapFromGlobal(e->globalPos()));
@@ -4012,7 +4016,7 @@ void QEditor::dragMoveEvent(QDragMoveEvent *e)
 	else
 		return;
 
-	QDocumentCursor c = cursorForPosition(mapToContents(e->pos()));
+    QDocumentCursor c = cursorForPosition(mapToContents(e->pos()));
 
 	if ( c.isValid() )
 	{
@@ -5042,8 +5046,11 @@ void QEditor::insertText(QDocumentCursor& c, const QString& text)
 {
     if ( protectedCursor(c) || text.isEmpty())
         return;
-
+#if (QT_VERSION>=QT_VERSION_CHECK(5,14,0))
+    QStringList lines = text.split('\n', Qt::KeepEmptyParts);
+#else
     QStringList lines = text.split('\n', QString::KeepEmptyParts);
+#endif
 
     bool hasSelection = c.hasSelection();
     if (hasSelection && c.selectedText() == text) {
@@ -6030,8 +6037,10 @@ void QEditor::scrollContentsBy(int dx, int dy)
 
 QVariant QEditor::inputMethodQuery(Qt::InputMethodQuery property) const {
 	switch(property) {
-	case Qt::ImMicroFocus:
-		return cursorMircoFocusRect();
+#if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
+    case Qt::ImMicroFocus:
+        return cursorMircoFocusRect();
+#endif
 	case Qt::ImFont:
 		// TODO find out correct value: qtextcontol uses the following
 		//return QVariant(d->cursor.charFormat().font());

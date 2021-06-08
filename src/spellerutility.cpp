@@ -71,7 +71,11 @@ bool SpellerUtility::loadDictionary(QString dic, QString ignoreFilePrefix)
 		emit dictionaryLoaded();
 		return true;
 	}
+#if (QT_VERSION>=QT_VERSION_CHECK(5,14,0))
+    ignoredWordList = QTextCodec::codecForName("UTF-8")->toUnicode(f.readAll()).split("\n", Qt::SkipEmptyParts);
+#else
 	ignoredWordList = QTextCodec::codecForName("UTF-8")->toUnicode(f.readAll()).split("\n", QString::SkipEmptyParts);
+#endif
 	// add words in user dic
 	QByteArray encodedString;
 	QString spell_encoding = QString(pChecker->get_dic_encoding());
@@ -174,11 +178,9 @@ bool SpellerUtility::check(QString word)
     if(!pChecker)
         return true;
     QByteArray encodedString = spellCodec->fromUnicode(word);
-#if QT_VERSION >= 0x050400
+
     bool result = pChecker->spell(encodedString.toStdString());
-#else
-    bool result = pChecker->spell(QString(encodedString).toStdString());
-#endif
+
 	return result;
 }
 
@@ -193,22 +195,13 @@ QStringList SpellerUtility::suggest(QString word)
     QMutexLocker locker(&mSpellerMutex);
     if(!pChecker)
         return suggestion;
-#if QT_VERSION >= 0x050400
+
     wlst = pChecker->suggest(encodedString.toStdString());
-#else
-    wlst = pChecker->suggest(QString(encodedString).toStdString());
-#endif
 
     unsigned long ns=wlst.size();
 	if (ns > 0) {
         for (uint i = 0; i < ns; i++) {
-#if QT_VERSION >= 0x050400
             suggestion << spellCodec->toUnicode(QByteArray::fromStdString(wlst[i]));
-#else
-            QString wrd=QString::fromStdString(wlst[i]);
-            suggestion << wrd;//spellCodec->toUnicode(wrd.toUtf8());
-#endif
-
 		}
 	}
 	return suggestion;

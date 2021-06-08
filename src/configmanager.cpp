@@ -20,6 +20,10 @@
 
 #include <QDomElement>
 
+#if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
+#include <QDesktopWidget>
+#endif
+
 #include "qformatconfig.h"
 
 #include "manhattanstyle.h"
@@ -415,7 +419,11 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	systemPalette = QApplication::palette();
 	defaultStyleName = QApplication::style()->objectName();
 
-	qRegisterMetaTypeStreamOperators<StringStringMap>("StringStringMap");
+#if QT_VERSION>=QT_VERSION_CHECK(6,0,0)
+    qRegisterMetaType<StringStringMap>("StringStringMap");
+#else
+    qRegisterMetaTypeStreamOperators<StringStringMap>("StringStringMap");
+#endif
 
 	managedToolBars.append(ManagedToolBar("Custom", QStringList()));
 	managedToolBars.append(ManagedToolBar("File", QStringList() << "main/file/new" << "main/file/open" << "main/file/save" << "main/file/close"));
@@ -425,6 +433,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	managedToolBars.append(ManagedToolBar("Format", QStringList() << "main/latex/sectioning" << "separator" << "main/latex/references" << "separator" << "main/latex/fontsizes"));
 	managedToolBars.append(ManagedToolBar("Table", QStringList() << "main/latex/tabularmanipulation/addRow" << "main/latex/tabularmanipulation/addColumn" << "main/latex/tabularmanipulation/pasteColumn" << "main/latex/tabularmanipulation/removeRow" << "main/latex/tabularmanipulation/removeColumn" << "main/latex/tabularmanipulation/cutColumn" << "main/latex/tabularmanipulation/alignColumns"));
 	managedToolBars.append(ManagedToolBar("Diff", QStringList() << "main/file/svn/prevdiff" << "main/file/svn/nextdiff"  ));
+    managedToolBars.append(ManagedToolBar("Review", QStringList() << "main/latex/review/alert" << "main/latex/review/comment" << "main/latex/review/add" << "main/latex/review/delete" << "main/latex/review/replace" ));
 	managedToolBars.append(ManagedToolBar("Central", QStringList() << "main/edit/goto/goback" << "main/edit/goto/goforward" << "separator" << "main/latex/fontstyles/textbf" << "main/latex/fontstyles/textit" << "main/latex/fontstyles/underline" << "main/latex/environment/flushleft" << "main/latex/environment/center" << "main/latex/environment/flushright" << "separator" <<
 	                                      "main/latex/spacing/newline" << "separator" <<
 	                                      "main/math/mathmode" << "main/math/subscript" << "main/math/superscript" << "main/math/frac" << "main/math/dfrac" << "main/math/sqrt"));
@@ -441,6 +450,7 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Structure/MarkStructureElementsBeyondEnd", &markStructureElementsBeyondEnd, true, &pseudoDialog->checkBoxMarkStructureElementsBeyondEnd);
 	registerOption("Structure/MarkStructureElementsInAppendix", &markStructureElementsInAppendix, true, &pseudoDialog->checkBoxMarkStructureElementsInAppendix);
 	registerOption("StructureView/ReferenceCommandsInContextMenu", &referenceCommandsInContextMenu, "\\ref", &pseudoDialog->leReferenceCommandsInContextMenu);
+    registerOption("StructureView/BackgroundColorInGlobalTOC", &globalTOCbackgroundOptions, 1, &pseudoDialog->comboBoxTOCBackgroundColor);
 
 	//beginRegisterGroup("texmaker");
 	//files
@@ -630,6 +640,9 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	TEMP(3);
 	TEMP(4);
 #undef TEMP
+    // add basic path info into grammarcheckconfig to avoid further use of globals
+    grammarCheckerConfig->appDir=removePathDelim(QCoreApplication::applicationDirPath());
+    grammarCheckerConfig->configDir=removePathDelim(configBaseDir);
 
 	//other dialogs
 	registerOption("Dialogs/Last Hard Wrap Column", &lastHardWrapColumn, 80);
@@ -726,7 +739,13 @@ ConfigManager::ConfigManager(QObject *parent): QObject (parent),
 	registerOption("Preview/CacheSize", &pdfDocumentConfig->cacheSizeMB, 512, &pseudoDialog->spinBoxCacheSizeMB);
 	registerOption("Preview/LoadStrategy", &pdfDocumentConfig->loadStrategy, 2, &pseudoDialog->comboBoxPDFLoadStrategy);
 	registerOption("Preview/RenderBackend", &pdfDocumentConfig->renderBackend, 0, &pseudoDialog->comboBoxPDFRenderBackend);
-	registerOption("Preview/DPI", &pdfDocumentConfig->dpi, QApplication::desktop()->logicalDpiX(), &pseudoDialog->spinBoxPreviewDPI);
+    registerOption("Preview/LimitRenderQueues", &pdfDocumentConfig->limitThreadNumber, -8); // hidden config to limit renderQueues i.e. parallel threads to render PDF. Default set numberOfThreads=qMin(8, number of cores)
+#if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
+    int dpi=QApplication::desktop()->logicalDpiX();
+#else
+    int dpi=72; // how to access main screen dpi?
+#endif
+	registerOption("Preview/DPI", &pdfDocumentConfig->dpi, dpi, &pseudoDialog->spinBoxPreviewDPI);
 	registerOption("Preview/Scale Option", &pdfDocumentConfig->scaleOption, 1, &pseudoDialog->comboBoxPreviewScale);
 	registerOption("Preview/Scale", &pdfDocumentConfig->scale, 100, &pseudoDialog->spinBoxPreviewScale);
 	registerOption("Preview/", &pdfDocumentConfig->disableHorizontalScrollingForFitToTextWidth, true, &pseudoDialog->checkBoxDisableHorizontalScrollingForFitToTextWidth);
@@ -970,8 +989,13 @@ QSettings *ConfigManager::readSettings(bool reread)
         tobeLoaded.append(pck.requiredPackages);
 		completerConfig->words.unite(pck.completionWords);
 		latexParser.optionCommands.unite(pck.optionCommands);
+#if (QT_VERSION>=QT_VERSION_CHECK(5,15,0))
+        latexParser.specialTreatmentCommands.insert(pck.specialTreatmentCommands);
+        latexParser.specialDefCommands.insert(pck.specialDefCommands);
+#else
 		latexParser.specialTreatmentCommands.unite(pck.specialTreatmentCommands);
         latexParser.specialDefCommands.unite(pck.specialDefCommands);
+#endif
 		latexParser.environmentAliases.unite(pck.environmentAliases);
 		latexParser.commandDefs.unite(pck.commandDescriptions);
 		//ltxCommands->possibleCommands.unite(pck.possibleCommands); // qt error, does not work properly
@@ -1276,7 +1300,7 @@ QSettings *ConfigManager::saveSettings(const QString &saveName)
 	config->beginWriteArray("keysetting");
 	for (int i = 0; i < managedMenuNewShortcuts.size(); ++i) {
 		config->setArrayIndex(i);
-        if(managedMenuNewShortcuts[i].first.startsWith("main/macros/")){
+        if(managedMenuNewShortcuts[i].first.startsWith("main/macros/") && managedMenuNewShortcuts[i].first!="main/macros/manage~0"){
             continue;
         }
 		config->setValue("id", managedMenuNewShortcuts[i].first);
@@ -1541,6 +1565,9 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 	act = new QAction(tr("Insert New Sub Menu (before)"), confDlg->ui.menuTree);
 	connect(act, SIGNAL(triggered()), SLOT(menuTreeNewMenuItem()));
 	confDlg->ui.menuTree->addAction(act);
+    act = new QAction(tr("Revert/Remove User Menu Item"), confDlg->ui.menuTree);
+    connect(act, SIGNAL(triggered()), SLOT(menuTreeRevertItem()));
+    confDlg->ui.menuTree->addAction(act);
 	confDlg->ui.menuTree->setContextMenuPolicy(Qt::ActionsContextMenu);
 
 	ComboBoxDelegate *cbd = new ComboBoxDelegate(confDlg->ui.menuTree);
@@ -1569,7 +1596,7 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 #ifdef ADWAITA
     availableStyles << "Adwaita (txs)" << "Adwaita Dark (txs)";
 #endif
-    availableStyles << tr("default");
+    availableStyles << "Orion Dark" << tr("default");
     confDlg->ui.comboBoxInterfaceStyle->addItems(availableStyles);
 	confDlg->ui.comboBoxInterfaceStyle->setCurrentIndex(confDlg->ui.comboBoxInterfaceStyle->findText(displayedInterfaceStyle));
 	confDlg->ui.comboBoxInterfaceStyle->setEditText(displayedInterfaceStyle);
@@ -1673,7 +1700,11 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
             tobeLoaded.append(pck.requiredPackages);
             completerConfig->words.unite(pck.completionWords);
 			latexParser.optionCommands.unite(pck.optionCommands);
+#if (QT_VERSION>=QT_VERSION_CHECK(5,15,0))
+            latexParser.specialTreatmentCommands.insert(pck.specialTreatmentCommands);
+#else
 			latexParser.specialTreatmentCommands.unite(pck.specialTreatmentCommands);
+#endif
 			latexParser.environmentAliases.unite(pck.environmentAliases);
 			latexParser.commandDefs.unite(pck.commandDescriptions);
 
@@ -1798,7 +1829,7 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 		for (int i = 0; i < editorKeys->childCount(); i++) {
 			int editOperation = editorKeys->child(i)->data(0, editorKeys_EditOperationRole).toInt();
 			QKeySequence kSeq = QKeySequence::fromString(editorKeys->child(i)->text(2), SHORTCUT_FORMAT);
-			if (!kSeq.isEmpty() && editOperation > 0) /* not QEditor::Invalid or QEditor::NoOperation*/
+            if (!kSeq.isEmpty() && !kSeq.toString().isEmpty() && editOperation > 0) /* not QEditor::Invalid or QEditor::NoOperation*/
 				this->editorKeys.insert(kSeq.toString(), editOperation);
 		}
 
@@ -1834,11 +1865,18 @@ bool ConfigManager::execConfigDialog(QWidget *parentToDialog)
 			if (changedProperties.contains(&modernStyle))
 				UtilsUi::txsInformation("Some elements cannot be adapted to the new style while the application is running. Please restart to get a consistent experience.");
 			if (interfaceStyle == tr("default")) interfaceStyle = "";
+            if(displayedInterfaceStyle=="Orion Dark" && interfaceStyle!=displayedInterfaceStyle){
+                qApp->setStyleSheet("");
+            }
 			setInterfaceStyle();
 		}
 
 		//language
 		if (language == tr("default")) language = "";
+        int i=language.indexOf("  (");
+        if(i>0){
+            language=language.left(i);
+        }
 		if (language != lastLanguage) loadTranslations(language);
 
 		// GUI scaling
@@ -1935,7 +1973,11 @@ void ConfigManager::updateRecentFiles(bool alwaysRecreateMenuItems)
 
 QMenu *ConfigManager::updateListMenu(const QString &menuName, const QStringList &items, const QString &namePrefix, bool prefixNumber, const char *slotName, const int baseShortCut, bool alwaysRecreateMenuItems, int additionalEntries, const QList<QVariant> data)
 {
+#if (QT_VERSION>=QT_VERSION_CHECK(6,0,0))
+    QSet<QKeyCombination> reservedShortcuts = QSet<QKeyCombination>() << QKeyCombination(Qt::SHIFT|Qt::Key_F3);  // workaround to prevent overwriting search backward
+#else
 	QSet<int> reservedShortcuts = QSet<int>() << Qt::SHIFT+Qt::Key_F3;  // workaround to prevent overwriting search backward
+#endif
 	QMenu *menu = getManagedMenu(menuName);
     REQUIRE_RET(menu, nullptr);
 	Q_ASSERT(menu->objectName() == menuName);
@@ -1962,9 +2004,15 @@ QMenu *ConfigManager::updateListMenu(const QString &menuName, const QStringList 
 		QString completeId = menu->objectName() + "/" + id;
 		Q_ASSERT(completeId == menuName + "/" + namePrefix + QString::number(i));
 		QList<QKeySequence> shortcuts;
-		if (baseShortCut && i < 10 && !reservedShortcuts.contains(baseShortCut + i))
+#if (QT_VERSION>=QT_VERSION_CHECK(6,0,0))
+        if (baseShortCut && i < 10 && !reservedShortcuts.contains(static_cast<Qt::Key>(baseShortCut + i))) {
+            shortcuts << baseShortCut + i;
+        }
+#else
+        if (baseShortCut && i < 10 && !reservedShortcuts.contains(baseShortCut + i))
 			shortcuts << baseShortCut + i;
-		QAction *act = newOrLostOldManagedAction(menu, id, prefixNumber?QString("%1: %2").arg(i+1).arg(items[i]) : items[i], slotName, shortcuts);
+#endif
+        QAction *act = newOrLostOldManagedAction(menu, id, prefixNumber?QString("%1: %2").arg(i+1).arg(items[i]) : items[i], slotName, &shortcuts);
 		if (hasData) {
 			act->setData(data[i]);
 		} else {
@@ -2037,7 +2085,7 @@ void ConfigManager::updateUserMacroMenu()
             }
 
             QString id = "tag" + QString::number(i);
-            QAction *act = newOrLostOldManagedAction(menu, id, m.name , SLOT(insertUserTag()), shortcuts);
+            QAction *act = newOrLostOldManagedAction(menu, id, m.name , SLOT(insertUserTag()), &shortcuts);
             act->setData(i++);
         }
     }
@@ -2197,15 +2245,31 @@ QAction *ConfigManager::newManagedAction(QObject *rootMenu,QWidget *menu, const 
     return act;
 }
 
-//creates a new action or reuses an existing one (an existing one that is currently not in any menu, but has been in the given menu)
-QAction *ConfigManager::newOrLostOldManagedAction(QWidget *menu, const QString &id, const QString &text, const char *slotName, const QList<QKeySequence> &shortCuts, const QString &iconFile)
+/*!
+ * \brief creates a new action or reuses an existing one (an existing one that is currently not in any menu, but has been in the given menu)
+ * \param menu
+ * \param id
+ * \param text for menu entry
+ * \param slotName
+ * \param shortCuts implemented as pointer to distinguish between no shortcuts wanted (empty list) and no shortcuts set (nullptr)
+ * \param iconFile
+ * \return generated or reused action
+ */
+QAction *ConfigManager::newOrLostOldManagedAction(QWidget *menu, const QString &id, const QString &text, const char *slotName, const QList<QKeySequence> *shortCuts, const QString &iconFile)
 {
 	QAction *old = menuParent->findChild<QAction *>(menu->objectName() + "/" + id);
-	if (!old)
-		return newManagedAction(menu, id, text, slotName, shortCuts, iconFile);
+    if (!old){
+        QList<QKeySequence> sc;
+        if(shortCuts){
+            sc=*shortCuts;
+        }
+        return newManagedAction(menu, id, text, slotName, sc, iconFile);
+    }
 	menu->addAction(old);
 	old->setText(text);
-    old->setShortcuts(shortCuts);
+    if(shortCuts){
+        old->setShortcuts(*shortCuts);
+    }
 	if (watchedMenus.contains(menu->objectName()))
 		emit watchedMenuChanged(menu->objectName());
 	return old;
@@ -2682,12 +2746,24 @@ void ConfigManager::setInterfaceStyle()
     if(newStyle=="Adwaita (txs)"){
         QApplication::setStyle(new Adwaita::Style(false));
         handled=true;
+        return;
     }
     if(newStyle=="Adwaita Dark (txs)"){
         QApplication::setStyle(new Adwaita::Style(true));
+        darkMode=true;
         handled=true;
+        return;
     }
 #endif
+    if(newStyle=="Orion Dark"){
+        QFile file(":/utilities/stylesheet_francesco.qss");
+        file.open(QFile::ReadOnly);
+        QString styleSheet = QString::fromLatin1(file.readAll());
+        qApp->setStyleSheet(styleSheet);
+        darkMode=true;
+        handled=true;
+        return;
+    }
     if(!handled){
         if (!QStyleFactory::keys().contains(newStyle)) newStyle = defaultStyleName;
 
@@ -3240,6 +3316,7 @@ QTreeWidgetItem *ConfigManager::managedLatexMenuToTreeWidget(QTreeWidgetItem *pa
 		if (manipulatedMenus.contains(menu->objectName())) {
 			QFont bold = menuitem->font(0);
 			bold.setBold(true);
+            changedItemsList.append(menuitem); // rescan item when determing the changed menus
 			for (int j = 0; j < 3; j++) menuitem->setFont(j, bold);
 		}
 		if (!relevantMenus.contains(menu->objectName())) advanced = true;
@@ -3276,6 +3353,7 @@ QTreeWidgetItem *ConfigManager::managedLatexMenuToTreeWidget(QTreeWidgetItem *pa
 			if (manipulatedMenus.contains(acts[i]->objectName())) {
 				QFont bold = twi->font(0);
 				bold.setBold(true);
+                changedItemsList.append(twi);
 				for (int j = 0; j < 3; j++) twi->setFont(j, bold);
 			}
 		}
@@ -3344,6 +3422,36 @@ void ConfigManager::menuTreeNewMenuItem()
 	menuTreeNewItem(true);
 }
 
+void ConfigManager::menuTreeRevertItem(){
+    QAction *a = qobject_cast<QAction *>(sender());
+    REQUIRE(a);
+    QTreeWidget *tw = qobject_cast<QTreeWidget *>(a->parentWidget());
+    REQUIRE(tw);
+    QTreeWidgetItem *item = tw->currentItem();
+    REQUIRE(item);
+    if (!item->parent()) return;
+    QString ID = item->data(0, Qt::UserRole).toString();
+    if(ID.contains("UII")){
+        //user defined menu/item
+        QTreeWidgetItem *parent=item->parent();
+        parent->removeChild(item);
+        manipulatedMenuTree.remove(ID);
+        changedItemsList.removeOne(item);
+    }else{ //revert
+        QFont bold = item->font(0);
+        if(bold.bold()){
+            // was manipulated
+            item->setText(1,tr("text is restored after restart"));
+            bold.setBold(false);
+            bold.setItalic(true);
+            for (int i = 0; i < 3; i++) item->setFont(i, bold);
+            manipulatedMenus.remove(ID);
+            changedItemsList.removeOne(item);
+        }
+    }
+
+}
+
 void ConfigManager::toggleVisibleTreeItems(bool show)
 {
 	REQUIRE(!superAdvancedItems.isEmpty());
@@ -3357,6 +3465,7 @@ void ConfigManager::toggleVisibleTreeItems(bool show)
 
 void ConfigManager::treeWidgetToManagedLatexMenuTo()
 {
+    manipulatedMenus.clear();
 	foreach (QTreeWidgetItem *item, changedItemsList) {
 		QString id = item->data(0, Qt::UserRole).toString();
 		if (id == "") continue;

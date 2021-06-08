@@ -2,6 +2,7 @@
 #include "latexcompleter_p.h"
 #include "latexcompleter_config.h"
 #include "help.h"
+#include "usermacro.h"
 
 #include "smallUsefulFunctions.h"
 
@@ -952,13 +953,17 @@ void CompletionListModel::filterList(const QString &word, int mostUsed, bool fet
         // generate regexp
         //QTime tm;
         //tm.start();
+#if (QT_VERSION>=QT_VERSION_CHECK(5,14,0))
+        QStringList chars=word.split("",Qt::SkipEmptyParts);
+#else
         QStringList chars=word.split("",QString::SkipEmptyParts);
+#endif
         if(chars.value(0)==QChar('\\')){
             chars.takeFirst();
         }
         QString regExpression=chars.join(".*");
 
-        QRegExp rx(regExpression);
+        QRegularExpression rx(regExpression);
         QList<int> scoringList;
 
         words=QtConcurrent::blockingFiltered(baselist,[rx](const CompletionWord &item){
@@ -1521,23 +1526,25 @@ void LatexCompleter::complete(QEditor *newEditor, const CompletionFlags &flags)
 	}
 
 	//disable auto close char while completer is open
-	editorAutoCloseChars = editor->flag(QEditor::AutoCloseChars);
-	editor->setFlag(QEditor::AutoCloseChars, false);
+    if(!alreadyActive)
+        editorAutoCloseChars = editor->flag(QEditor::AutoCloseChars); // don't change again from open completer (and therin changed flag, see #1347)
 
-	completerInputBinding->setMostUsed(config->preferedCompletionTab, true);
-	bool handled = false;
-	if (forcedGraphic) {
-		if (!dirReader) {
-			dirReader = new directoryReader(this);
+    editor->setFlag(QEditor::AutoCloseChars, false);
+
+    completerInputBinding->setMostUsed(config->preferedCompletionTab, true);
+    bool handled = false;
+    if (forcedGraphic) {
+        if (!dirReader) {
+            dirReader = new directoryReader(this);
             connect(dirReader, &directoryReader::directoryLoaded, this, &LatexCompleter::directoryLoaded);
-			connect(this, SIGNAL(setDirectoryForCompletion(QString)), dirReader, SLOT(readDirectory(QString)));
-			dirReader->start();
-		}
-		QSet<QString> files;
-		listModel->setBaseWords(files, CT_NORMALTEXT);
-		listModel->baselist = listModel->wordsText;
-		handled = true;
-	}
+            connect(this, SIGNAL(setDirectoryForCompletion(QString)), dirReader, SLOT(readDirectory(QString)));
+            dirReader->start();
+        }
+        QSet<QString> files;
+        listModel->setBaseWords(files, CT_NORMALTEXT);
+        listModel->baselist = listModel->wordsText;
+        handled = true;
+    }
 	if (forcedCite) {
 		listModel->baselist = listModel->wordsCitations;
 		handled = true;

@@ -4,6 +4,7 @@
 <file>completion/acro.cwl</file>
 <file>completion/acronym.cwl</file>
 <file>completion/afterpage.cwl</file>
+<file>completion/algcompatible.cwl</file>
 <file>completion/algorithm2e.cwl</file>
 <file>completion/algorithm.cwl</file>
 <file>completion/algorithmicx.cwl</file>
@@ -37,6 +38,7 @@
 <file>completion/cancel.cwl</file>
 <file>completion/caption.cwl</file>
 <file>completion/cases.cwl</file>
+<file>completion/changes.cwl</file>
 <file>completion/chemformula.cwl</file>
 <file>completion/chemmacros.cwl</file>
 <file>completion/chemstyle.cwl</file>
@@ -58,6 +60,7 @@
 <file>completion/coordsys.cwl</file>
 <file>completion/cquthesis.cwl</file>
 <file>completion/csquotes.cwl</file>
+<file>completion/ctex.cwl</file>
 <file>completion/currvita.cwl</file>
 <file>completion/cyrillic.cwl</file>
 <file>completion/datatool-base.cwl</file>
@@ -65,6 +68,7 @@
 <file>completion/diagxy.cwl</file>
 <file>completion/doi.cwl</file>
 <file>completion/dsfont.cwl</file>
+<file>completion/easyReview.cwl</file>
 <file>completion/empheq.cwl</file>
 <file>completion/enumerate.cwl</file>
 <file>completion/enumitem.cwl</file>
@@ -91,6 +95,7 @@
 <file>completion/geometry.cwl</file>
 <file>completion/german.cwl</file>
 <file>completion/glossaries.cwl</file>
+<file>completion/glossaries-extra.cwl</file>
 <file>completion/glosstex.cwl</file>
 <file>completion/graphbox.cwl</file>
 <file>completion/graphicx.cwl</file>
@@ -236,6 +241,8 @@
 <file>completion/virginialake.cwl</file>
 <file>completion/wasysym.cwl</file>
 <file>completion/xcolor.cwl</file>
+<file>completion/xeCJK.cwl</file>
+<file>completion/xeCJKfntef.cwl</file>
 <file>completion/xepersian.cwl</file>
 <file>completion/xetex.cwl</file>
 <file>completion/xfrac.cwl</file>
@@ -250,6 +257,7 @@
 <file>completion/yathesis.cwl</file>
 <file>completion/yfonts.cwl</file>
 <file>completion/zhlipsum.cwl</file>
+<file>completion/zhnumber.cwl</file>
 <file>completion/cwlAliases.dat</file>
 </qresource>
 </RCC>

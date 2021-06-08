@@ -18,7 +18,7 @@
 #include <QItemEditorCreatorBase>
 #include <QStyledItemDelegate>
 
-const QRegExpValidator wordValidator(QRegExp("[^<].*"), nullptr);
+const QRegularExpressionValidator wordValidator(QRegularExpression("[^<].*"), nullptr);
 
 SpellerDialog::SpellerDialog(QWidget *parent, SpellerUtility *utility)
     : QDialog(parent), m_statusBar(nullptr), m_speller(utility), editor(nullptr), editorView(nullptr)
@@ -178,7 +178,7 @@ void SpellerDialog::SpellingNextWord()
                 continue;
             QString word=tk.getText();
             word = latexToPlainWordwithReplacementList(word, mReplacementList);
-            if (m_speller->check(word)) continue;
+            if (tk.ignoreSpelling || m_speller->check(word)) continue;
             QStringList suggWords = m_speller->suggest(word);
 
             QDocumentCursor wordSelection(editor->document(), curLine, tk.start);

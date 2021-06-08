@@ -477,8 +477,7 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
     connect(ui.pushButtonResetLTURL, SIGNAL(clicked()), this, SLOT(resetLTURL()));
     connect(ui.pushButtonResetLTArgs, SIGNAL(clicked()), this, SLOT(resetLTArgs()));
 
-
-	fmConfig = new QFormatConfig(ui.formatConfigBox, parent->styleSheet().isEmpty());
+    fmConfig = new QFormatConfig(ui.formatConfigBox, qApp->styleSheet().isEmpty());
 	fmConfig->setToolTip(tr("Here the syntax highlighting for various commands, environments and selections can be changed."));
 	fmConfig->addCategory(tr("Basic highlighting")) << "normal" << "background" << "comment" << "magicComment" << "commentTodo" << "keyword" << "extra-keyword" << "math-delimiter" << "math-keyword" << "numbers" << "text" << "align-ampersand" << "environment" << "structure" << "link" << "escapeseq" << "verbatim" << "picture" << "picture-keyword" << "preedit";
 	fmConfig->addCategory(tr("LaTeX checking")) << "braceMatch" << "braceMismatch" << "latexSyntaxMistake" << "referencePresent" << "referenceMissing" << "referenceMultiple" << "citationPresent" << "citationMissing" << "packagePresent" << "packageMissing" << "temporaryCodeCompletion";
@@ -498,7 +497,7 @@ ConfigDialog::ConfigDialog(QWidget *parent): QDialog(parent), checkboxInternalPD
 	//fmConfig->setMaximumSize(490,300);
 	//fmConfig->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Ignored);
 	QBoxLayout *layout = new QBoxLayout(QBoxLayout::TopToBottom, ui.formatConfigBox);
-	layout->setMargin(0);
+    //layout->setMargin(0);
 	layout->insertWidget(0, fmConfig);
 
     ConfigManager *config = dynamic_cast<ConfigManager *>(ConfigManagerInterface::getInstance());

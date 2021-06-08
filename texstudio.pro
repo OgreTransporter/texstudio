@@ -70,7 +70,7 @@ exists(texstudio.pri):include(texstudio.pri)
 QT += network \
     xml \
     svg \
-    script \
+    qml \
     printsupport \
     concurrent
 
@@ -78,27 +78,31 @@ QT += \
     widgets \
     uitools
 
+
+versionGreaterOrEqual($$QT_VERSION, "6.0.0") {
+    QT += core5compat
+}
+
+!isEmpty(MXE){
+    DEFINES += MXE
+}
+
 !isEmpty(PHONON){
     QT += phonon4qt5
     LIBS += -lphonon4qt5
     DEFINES += PHONON
 }
 
-isEmpty(INTERNAL_TERMINAL):pkgAtLeastVersion("qtermwidget5", "0.9.0") {
-    INTERNAL_TERMINAL=1
-    message(Use detected qterminal)
-}
-!isEmpty(INTERNAL_TERMINAL){
-    LIBS += -lqtermwidget5
-    DEFINES += INTERNAL_TERMINAL
-    message(Use qterminal)
-}
-
-!isEmpty(QJS){
-    DEFINES += QJS
-    QT += qml
-    QT -= script
-    message(Use experimental JS engine)
+!versionGreaterOrEqual($$QT_VERSION, "6.0.0") {
+    isEmpty(INTERNAL_TERMINAL):pkgAtLeastVersion("qtermwidget5", "0.9.0") {
+        INTERNAL_TERMINAL=1
+        message(Use detected qterminal)
+    }
+    !isEmpty(INTERNAL_TERMINAL){
+        LIBS += -lqtermwidget5
+        DEFINES += INTERNAL_TERMINAL
+        message(Use qterminal)
+    }
 }
 
 include(src/qtsingleapplication/qtsingleapplication.pri)
@@ -117,6 +121,7 @@ RESOURCES += texstudio.qrc \
 
 TRANSLATIONS += translation/texstudio_ar.ts \
     translation/texstudio_br.ts \
+    translation/texstudio_ca.ts \
     translation/texstudio_cs.ts \
     translation/texstudio_de.ts \
     translation/texstudio_el.ts \
@@ -125,10 +130,12 @@ TRANSLATIONS += translation/texstudio_ar.ts \
     translation/texstudio_fr.ts \
     translation/texstudio_hu.ts \
     translation/texstudio_id_ID.ts \
+    translation/texstudio_ie.ts \
     translation/texstudio_it.ts \
     translation/texstudio_ja.ts \
     translation/texstudio_ko.ts \
     translation/texstudio_ko_KR.ts \
+    translation/texstudio_nb_NO.ts \
     translation/texstudio_nl.ts \
     translation/texstudio_pl.ts \
     translation/texstudio_pt.ts \
@@ -200,6 +207,7 @@ unix {
         utilities/latex2e.css \
         translation/texstudio_ar.qm \
         translation/texstudio_br.qm \
+        translation/texstudio_ca.qm \
         translation/texstudio_cs.qm \
         translation/texstudio_de.qm \
         translation/texstudio_el.qm \
@@ -208,10 +216,12 @@ unix {
         translation/texstudio_fr.qm \
         translation/texstudio_hu.qm \
         translation/texstudio_id_ID.qm \
+        translation/texstudio_ie.qm \
         translation/texstudio_it.qm \
         translation/texstudio_ja.qm \
         translation/texstudio_ko.qm \
         translation/texstudio_ko_KR.qm \
+        translation/texstudio_nb_NO.qm \
         translation/texstudio_nl.qm \
         translation/texstudio_pl.qm \
         translation/texstudio_pt.qm \
@@ -426,13 +436,16 @@ exists(./.git)  {
 !win32-msvc*: {
   QMAKE_CXXFLAGS_DEBUG -= -O -O1 -O2 -O3
   QMAKE_CXXFLAGS_DEBUG += -Wall -Wextra -Wmissing-include-dirs -Wunknown-pragmas -Wundef -Wpointer-arith -Winline -O0
-  QMAKE_CXXFLAGS += -std=c++11
+
+  QMAKE_CXXFLAGS += -fno-omit-frame-pointer
   !isEmpty(MXE): QMAKE_CXXFLAGS += -fpermissive
   !win32:!haiku: QMAKE_LFLAGS += -rdynamic # option not supported by mingw and haiku
   else {
     QMAKE_CXXFLAGS += -gstabs -g
     QMAKE_LFLAGS -= -Wl,-s
-    QMAKE_LFLAGS_RELEASE -= -Wl,-s
+    isEmpty(STRIP){
+        QMAKE_LFLAGS_RELEASE -= -Wl,-s
+    }
   }
 } else {
   DEFINES += _CRT_SECURE_NO_WARNINGS
