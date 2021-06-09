@@ -1,151 +1,339 @@
-#.rst:
-# FindPoppler
-# -----------
+# - Try to find Poppler and its components
 #
-# Try to find Poppler.
+# Valid components are: cpp glib qt5 qt6
 #
-# This is a component-based find module, which makes use of the COMPONENTS
-# and OPTIONAL_COMPONENTS arguments to find_module.  The following components
-# are available::
+# Once done this will define
 #
-#   Core  Cpp  Qt5  Qt4 Glib
+#  Poppler_FOUND - system has Poppler
+#  Poppler_NEEDS_FONTCONFIG - A boolean indicating if libpoppler depends on libfontconfig
+#  Poppler_INCLUDE_DIRS - the include directories for Poppler private headers (if they exist)
+#  Poppler_LIBRARIES - Link these to use Poppler
+#  Poppler_LIBRARY_DEBUG
+#  Poppler_LIBRARY_RELEASE
+#  Poppler_LIBRARIES - Link these to use Poppler
+#  Poppler_<C>_FOUND - system has Poppler component <C>
+#  Poppler_<C>_INCLUDE_DIRS - the include directories for component <C> headers
+#  Poppler_<C>_LIBRARIES  - Link this to use the component <C>
+#  Poppler_<C>_LIBRARY_DEBUG
+#  Poppler_<C>_LIBRARY_RELEASE
 #
-# If no components are specified, this module will act as though all components
-# were passed to OPTIONAL_COMPONENTS.
+# In addition, the following IMPORT targets will be created
 #
-# This module will define the following variables, independently of the
-# components searched for or found:
+#  Poppler::poppler
+#  Poppler::poppler-<C> for each component <C>
 #
-# ``Poppler_FOUND``
-#     TRUE if (the requested version of) Poppler is available
-# ``Poppler_VERSION``
-#     Found Poppler version
-# ``Poppler_TARGETS``
-#     A list of all targets imported by this module (note that there may be more
-#     than the components that were requested)
-# ``Poppler_LIBRARIES``
-#     This can be passed to target_link_libraries() instead of the imported
-#     targets
-# ``Poppler_INCLUDE_DIRS``
-#     This should be passed to target_include_directories() if the targets are
-#     not used for linking
-# ``Poppler_DEFINITIONS``
-#     This should be passed to target_compile_options() if the targets are not
-#     used for linking
-#
-# For each searched-for components, ``Poppler_<component>_FOUND`` will be set to
-# TRUE if the corresponding Poppler library was found, and FALSE otherwise.  If
-# ``Poppler_<component>_FOUND`` is TRUE, the imported target
-# ``Poppler::<component>`` will be defined.  This module will also attempt to
-# determine ``Poppler_*_VERSION`` variables for each imported target, although
-# ``Poppler_VERSION`` should normally be sufficient.
-#
-# In general we recommend using the imported targets, as they are easier to use
-# and provide more control.  Bear in mind, however, that if any target is in the
-# link interface of an exported library, it must be made available by the
-# package config file.
-#
-# Since 5.19
+# Redistribution and use of this file is allowed according to the terms of the
+# MIT license. For details see the file COPYING-CMAKE-MODULES.
 
-#=============================================================================
-# Copyright 2015 Alex Richardson <arichardson.kde@gmail.com>
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# 1. Redistributions of source code must retain the copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-# 3. The name of the author may not be used to endorse or promote products
-#    derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#=============================================================================
-include(${CMAKE_CURRENT_LIST_DIR}/ECMFindModuleHelpersStub.cmake)
-
-ecm_find_package_version_check(Poppler)
-
-set(Poppler_known_components
-    Cpp
-    Qt4
-    Qt5
-    Glib
+include(FindPackageHandleStandardArgs)
+include(FindPackageMessage)
+include(SelectLibraryConfigurations)
+set(_POPPLER_x86 "(x86)")
+set(_POPPLER_INCLUDE_SEARCH
+  ${POPPLER_ROOT}/include
+  "$ENV{ProgramFiles}/poppler/include"
+  "$ENV{ProgramFiles${_POPPLER_x86}}/poppler/include"
+  /usr/local/include
+  /usr/include
+  include
 )
-foreach(_comp ${Poppler_known_components})
-    string(TOLOWER "${_comp}" _lc_comp)
-    set(Poppler_${_comp}_component_deps "Core")
-    set(Poppler_${_comp}_pkg_config "poppler-${_lc_comp}")
-    set(Poppler_${_comp}_lib "poppler-${_lc_comp}")
-    set(Poppler_${_comp}_header_subdir "poppler/${_lc_comp}")
-endforeach()
-set(Poppler_known_components Core ${Poppler_known_components})
-
-set(Poppler_Core_component_deps "")
-set(Poppler_Core_pkg_config "poppler")
-# poppler-config.h header is only installed with --enable-xpdf-headers
-# fall back to using any header from a submodule with a path to make it work in that case too
-set(Poppler_Core_header "poppler-config.h" "cpp/poppler-version.h" "qt5/poppler-qt5.h" "qt4/poppler-qt4.h" "glib/poppler.h")
-set(Poppler_Core_header_subdir "poppler")
-set(Poppler_Core_lib "poppler")
-
-set(Poppler_Cpp_header "poppler-version.h")
-set(Poppler_Qt5_header "poppler-qt5.h")
-set(Poppler_Qt4_header "poppler-qt4.h")
-set(Poppler_Glib_header "poppler.h")
-
-ecm_find_package_parse_components(Poppler
-    RESULT_VAR Poppler_components
-    KNOWN_COMPONENTS ${Poppler_known_components}
+set(_POPPLER_LIB_SEARCH
+  ${POPPLER_ROOT}/lib
+  "$ENV{ProgramFiles}/poppler/lib"
+  "$ENV{ProgramFiles${_POPPLER_x86}}/poppler/lib"
+  /usr/local
+  /usr
+  /opt/local/lib
 )
-ecm_find_package_handle_library_components(Poppler
-    COMPONENTS ${Poppler_components}
+set(_POPPLER_BIN_SEARCH
+  ${POPPLER_ROOT}/bin
+  "$ENV{ProgramFiles}/poppler/bin"
+  "$ENV{ProgramFiles${_POPPLER_x86}}/poppler/bin"
+)
+set(_POPPLER_LIB_SUFFIXES
+  lib64
+  lib
+  x64
+  x86
 )
 
-# If pkg-config didn't provide us with version information,
-# try to extract it from poppler-version.h or poppler-config.h
-if(NOT Poppler_VERSION)
-    find_file(Poppler_VERSION_HEADER
-        NAMES "poppler-config.h" "cpp/poppler-version.h"
-        HINTS ${Poppler_INCLUDE_DIRS}
-        PATH_SUFFIXES ${Poppler_Core_header_subdir}
-    )
-    mark_as_advanced(Poppler_VERSION_HEADER)
-    if(Poppler_VERSION_HEADER)
-        file(READ ${Poppler_VERSION_HEADER} _poppler_version_header_contents)
-        string(REGEX REPLACE
-            "^.*[ \t]+POPPLER_VERSION[ \t]+\"([0-9d.]*)\".*$"
-            "\\1"
-            Poppler_VERSION
-            "${_poppler_version_header_contents}"
-        )
-        unset(_poppler_version_header_contents)
-    endif()
+# -----------------
+# Find Poppler core
+# -----------------
+
+# use pkg-config to get the directories and then use these values in the
+# FIND_PATH() and FIND_LIBRARY() calls
+if (NOT WIN32)
+  find_package(PkgConfig QUIET)
+  pkg_check_modules(Poppler_PKG QUIET poppler)
+endif (NOT WIN32)
+
+# Find libpoppler
+if(NOT Poppler_LIBRARY)
+  find_library(Poppler_LIBRARY_DEBUG NAMES popplerd ${Poppler_PKG_LIBRARIES}
+    PATHS
+      ${_POPPLER_LIB_SEARCH}
+    HINTS
+      ${Poppler_PKG_LIBRARY_DIRS} # Generated by pkg-config
+    PATH_SUFFIXES
+      ${_POPPLER_LIB_SUFFIXES}
+  )
+  find_library(Poppler_LIBRARY_RELEASE NAMES poppler ${Poppler_PKG_LIBRARIES}
+    PATHS
+      ${_POPPLER_LIB_SEARCH}
+    HINTS
+      ${Poppler_PKG_LIBRARY_DIRS} # Generated by pkg-config
+    PATH_SUFFIXES
+      ${_POPPLER_LIB_SUFFIXES}
+  )
+  select_library_configurations(Poppler)
 endif()
 
-find_package_handle_standard_args(Poppler
-    FOUND_VAR
-        Poppler_FOUND
-    REQUIRED_VARS
-        Poppler_LIBRARIES
-    VERSION_VAR
-        Poppler_VERSION
-    HANDLE_COMPONENTS
+# Find include directory for private headers (optional)
+find_path(Poppler_INCLUDE_DIR NAMES poppler-config.h
+  PATHS
+    ${_POPPLER_INCLUDE_SEARCH}
+  HINTS
+    ${Poppler_PKG_INCLUDE_DIRS} # Generated by pkg-config
+  PATH_SUFFIXES
+    poppler
 )
 
-include(FeatureSummary)
-set_package_properties(Poppler PROPERTIES
-    DESCRIPTION "A PDF rendering library"
-    URL "http://poppler.freedesktop.org"
-)
+# If private headers were found, determine poppler's version
+if (Poppler_INCLUDE_DIR)
+  find_package_message(Poppler_PRIVATE_HEADERS "Found Poppler private headers: ${Poppler_INCLUDE_DIR}" "${Poppler_INCLUDE_DIR}")
+
+  file(STRINGS "${Poppler_INCLUDE_DIR}/poppler-config.h" Poppler_CONFIG_H REGEX "^#define POPPLER_VERSION \"[0-9.]+\"$")
+
+  if(Poppler_CONFIG_H)
+    string(REGEX REPLACE "^.*POPPLER_VERSION \"([0-9.]+)\"$" "\\1" Poppler_VERSION_STRING "${Poppler_CONFIG_H}")
+    string(REGEX REPLACE "^([0-9]+).*$" "\\1" Poppler_VERSION_MAJOR "${Poppler_VERSION_STRING}")
+    string(REGEX REPLACE "^${Poppler_VERSION_MAJOR}\\.([0-9]+).*$" "\\1" Poppler_VERSION_MINOR  "${Poppler_VERSION_STRING}")
+    string(REGEX REPLACE "^${Poppler_VERSION_MAJOR}\\.${Poppler_VERSION_MINOR}\\.([0-9]+)$" "\\1" Poppler_VERSION_PATCH "${Poppler_VERSION_STRING}")
+
+    if (Poppler_VERSION_MINOR STREQUAL Poppler_VERSION_STRING)
+      unset(Poppler_VERSION_MINOR)
+    endif()
+    if (Poppler_VERSION_PATCH STREQUAL Poppler_VERSION_STRING)
+      unset(Poppler_VERSION_PATCH)
+    endif()
+  endif()
+endif ()
+
+# Scan poppler libraries for dependencies on Fontconfig
+include(GetPrerequisites)
+mark_as_advanced(gp_cmd)
+get_prerequisites("${Poppler_LIBRARY}" Poppler_PREREQS TRUE FALSE "" "")
+if ("${Poppler_PREREQS}" MATCHES "fontconfig")
+  set(Poppler_NEEDS_FONTCONFIG TRUE)
+else ()
+  set(Poppler_NEEDS_FONTCONFIG FALSE)
+endif ()
+
+# -----------------------
+# Find Poppler components
+# -----------------------
+if(NOT DEFINED Poppler_FIND_COMPONENTS)
+  set(Poppler_FIND_COMPONENTS
+    cpp
+    qt6
+    qt5
+    glib
+  )
+endif()
+
+foreach (cmp IN LISTS Poppler_FIND_COMPONENTS)
+  set(label "Poppler_${cmp}")
+  set(pkg "poppler-${cmp}")
+
+  if (NOT WIN32)
+    pkg_check_modules(${label}_PKG QUIET ${pkg})
+  endif (NOT WIN32)
+
+  # Find library
+  find_library(${label}_LIBRARY_DEBUG NAMES ${pkg}d ${${label}_PKG_LIBRARIES}
+    PATHS
+      ${_POPPLER_LIB_SEARCH}
+    HINTS
+      ${${label}_PKG_LIBRARY_DIRS} # Generated by pkg-config
+    PATH_SUFFIXES
+      ${_POPPLER_LIB_SUFFIXES}
+  )
+  find_library(${label}_LIBRARY_RELEASE NAMES ${pkg} ${${label}_PKG_LIBRARIES}
+    PATHS
+      ${_POPPLER_LIB_SEARCH}
+    HINTS
+      ${${label}_PKG_LIBRARY_DIRS} # Generated by pkg-config
+    PATH_SUFFIXES
+      ${_POPPLER_LIB_SUFFIXES}
+  )
+  select_library_configurations(${label})
+
+  # Find include directory
+  if ("${cmp}" STREQUAL qt6)
+    set(${pkg}_header poppler-qt6.h)
+    # NB: find_package(Qt6) changes pkg in our scope, so back it up and restore
+    # it afterwards
+    set(_pkg "${pkg}")
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Xml)
+    set(pkg "${_pkg}")
+  elseif ("${cmp}" STREQUAL qt5)
+    set(${pkg}_header poppler-qt5.h)
+    find_package(Qt5 REQUIRED COMPONENTS Core Gui Xml)
+  else ()
+    set(${pkg}_header poppler-document.h)
+  endif ()
+  find_path(${label}_INCLUDE_DIR NAMES ${${pkg}_header}
+    PATHS
+      ${_POPPLER_INCLUDE_SEARCH}
+    HINTS
+      ${${label}_PKG_INCLUDE_DIRS} # Generated by pkg-config
+    PATH_SUFFIXES
+      poppler/${cmp}
+  )
+
+  # Find version
+  if (EXISTS "${${label}_INCLUDE_DIR}/poppler-version.h")
+    file(STRINGS "${${label}_INCLUDE_DIR}/poppler-version.h" ${label}_CONFIG_H REGEX "^#define POPPLER_VERSION \"[0-9.]+\"$")
+
+    if(${label}_CONFIG_H)
+      string(REGEX REPLACE "^.*POPPLER_VERSION \"([0-9.]+)\"$" "\\1" ${label}_VERSION_STRING "${${label}_CONFIG_H}")
+      string(REGEX REPLACE "^([0-9]+).*$" "\\1" ${label}_VERSION_MAJOR "${${label}_VERSION_STRING}")
+      string(REGEX REPLACE "^${${label}_VERSION_MAJOR}\\.([0-9]+).*$" "\\1" ${label}_VERSION_MINOR  "${${label}_VERSION_STRING}")
+      string(REGEX REPLACE "^${${label}_VERSION_MAJOR}\\.${${label}_VERSION_MINOR}\\.([0-9]+)$" "\\1" ${label}_VERSION_PATCH "${${label}_VERSION_STRING}")
+
+      if (${label}_VERSION_MINOR STREQUAL ${label}_VERSION_STRING)
+        unset(${label}_VERSION_MINOR)
+      endif()
+      if (${label}_VERSION_PATCH STREQUAL ${label}_VERSION_STRING)
+        unset(${label}_VERSION_PATCH)
+      endif()
+    endif()
+  endif ()
+
+  if (CMAKE_VERSION VERSION_LESS "3.17")
+    find_package_handle_standard_args(${label} FOUND_VAR ${label}_FOUND REQUIRED_VARS ${label}_LIBRARY ${label}_INCLUDE_DIR VERSION_VAR ${label}_VERSION_STRING)
+  else ()
+    find_package_handle_standard_args(${label} FOUND_VAR ${label}_FOUND REQUIRED_VARS ${label}_LIBRARY ${label}_INCLUDE_DIR VERSION_VAR ${label}_VERSION_STRING NAME_MISMATCHED)
+  endif ()
+
+  if (${label}_FOUND)
+    set(${label}_INCLUDE_DIRS "${${label}_INCLUDE_DIR}" "${Poppler_INCLUDE_DIR}")
+    set(${label}_LIBRARIES "${${label}_LIBRARY}" "${Poppler_LIBRARY}")
+
+    if (NOT TARGET Poppler::poppler-${cmp})
+      add_library(Poppler::poppler-${cmp} SHARED IMPORTED)
+      set_target_properties(Poppler::poppler-${cmp} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${${label}_INCLUDE_DIR}")
+      if(${label}_LIBRARY_RELEASE)
+        set_property(TARGET Poppler::poppler-${cmp} APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+        if(WIN32)
+          find_file(${label}_DLL_RELEASE NAMES ${pkg}.dll PATHS ${_POPPLER_BIN_SEARCH} PATH_SUFFIXES ${_POPPLER_LIB_SUFFIXES})
+          if(${label}_DLL_RELEASE)
+            set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATION_RELEASE "${${label}_DLL_RELEASE}" IMPORTED_IMPLIB_RELEASE "${${label}_LIBRARY_RELEASE}")
+          else()
+            set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATION_RELEASE "${${label}_LIBRARY_RELEASE}" IMPORTED_IMPLIB_RELEASE "${${label}_LIBRARY_RELEASE}")
+          endif()
+          unset(${label}_DLL_RELEASE CACHE)
+        else()
+          set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATION_RELEASE "${${label}_LIBRARY_RELEASE}" IMPORTED_IMPLIB_RELEASE "${${label}_LIBRARY_RELEASE}")
+        endif()
+      endif()
+      if(${label}_LIBRARY_DEBUG)
+        set_property(TARGET Poppler::poppler-${cmp} APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+        if(WIN32)
+          find_file(${label}_DLL_DEBUG NAMES ${pkg}d.dll PATHS ${_POPPLER_BIN_SEARCH} PATH_SUFFIXES ${_POPPLER_LIB_SUFFIXES})
+          if(${label}_DLL_DEBUG)
+            set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATION_DEBUG "${${label}_DLL_DEBUG}" IMPORTED_IMPLIB_DEBUG "${${label}_LIBRARY_DEBUG}")
+          else()
+            set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATION_DEBUG "${${label}_LIBRARY_DEBUG}" IMPORTED_IMPLIB_DEBUG "${${label}_LIBRARY_DEBUG}")
+          endif()
+          unset(${label}_DLL_DEBUG CACHE)
+        else()
+          set_target_properties(Poppler::poppler-${cmp} PROPERTIES IMPORTED_LOCATIONDEBUG "${${label}_LIBRARY_DEBUG}" IMPORTED_IMPLIB_DEBUG "${${label}_LIBRARY_DEBUG}")
+        endif()
+      endif()
+      if(NOT ${label}_LIBRARY_RELEASE AND NOT ${label}_LIBRARY_DEBUG)
+        set_property(TARGET Poppler::poppler-${cmp} APPEND PROPERTY IMPORTED_LOCATION "${${label}_LIBRARY}")
+      endif()
+      if ("${cmp}" STREQUAL "qt5")
+        # NB: It is important to list Poppler::poppler last as it may share
+        # dependencies with Qt (when compiled statically); particularly harfbuzz
+        # and freetype don't play nicely if poppler is not listed last
+        set_target_properties(Poppler::poppler-${cmp} PROPERTIES INTERFACE_LINK_LIBRARIES "Qt5::Core;Qt5::Gui;Qt5::Xml;Poppler::poppler")
+      elseif ("${cmp}" STREQUAL "qt6")
+        # NB: It is important to list Poppler::poppler last as it may share
+        # dependencies with Qt (when compiled statically); particularly harfbuzz
+        # and freetype don't play nicely if poppler is not listed last
+        set_target_properties(Poppler::poppler-${cmp} PROPERTIES INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui;Qt6::Xml;Poppler::poppler")
+      else ()
+        set_target_properties(Poppler::poppler-${cmp} PROPERTIES INTERFACE_LINK_LIBRARIES Poppler::poppler)
+      endif ()
+    endif ()
+  endif ()
+endforeach ()
+
+# ---------
+# Finish up
+# ---------
+
+find_package_handle_standard_args(Poppler FOUND_VAR Poppler_FOUND REQUIRED_VARS Poppler_LIBRARY VERSION_VAR Poppler_VERSION_STRING HANDLE_COMPONENTS)
+
+if (Poppler_FOUND)
+  set(Poppler_INCLUDE_DIRS "${Poppler_INCLUDE_DIR}")
+  set(Poppler_LIBRARIES "${Poppler_LIBRARY}")
+  if (NOT TARGET Poppler::poppler)
+    add_library(Poppler::poppler SHARED IMPORTED)
+    if (Poppler_INCLUDE_DIR)
+      set_target_properties(Poppler::poppler PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${Poppler_INCLUDE_DIR}"
+        HAS_PRIVATE_HEADERS On
+      )
+    endif ()
+    if(Poppler_LIBRARY_RELEASE)
+      set_property(TARGET Poppler::poppler APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+      if(WIN32)
+        find_file(Poppler_DLL_RELEASE NAMES poppler.dll PATHS ${_POPPLER_BIN_SEARCH} PATH_SUFFIXES ${_POPPLER_LIB_SUFFIXES})
+        if(Poppler_DLL_RELEASE)
+          set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_RELEASE "${Poppler_DLL_RELEASE}" IMPORTED_IMPLIB_RELEASE "${Poppler_LIBRARY_RELEASE}")
+        else()
+          set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_RELEASE "${Poppler_LIBRARY_RELEASE}" IMPORTED_IMPLIB_RELEASE "${Poppler_LIBRARY_RELEASE}")
+        endif()
+        unset(Poppler_DLL_RELEASE CACHE)
+      else()
+        set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_RELEASE "${Poppler_LIBRARY_RELEASE}" IMPORTED_IMPLIB_RELEASE "${Poppler_LIBRARY_RELEASE}")
+      endif()
+    endif()
+    if(Poppler_LIBRARY_DEBUG)
+      set_property(TARGET Poppler::poppler APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+      if(WIN32)
+        find_file(Poppler_DLL_DEBUG NAMES popplerd.dll PATHS ${_POPPLER_BIN_SEARCH} PATH_SUFFIXES ${_POPPLER_LIB_SUFFIXES})
+        if(Poppler_DLL_DEBUG)
+          set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_DEBUG "${Poppler_DLL_DEBUG}}" IMPORTED_IMPLIB_DEBUG "${Poppler_LIBRARY_DEBUG}")
+        else()
+          set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_DEBUG "${Poppler_LIBRARY_DEBUG}" IMPORTED_IMPLIB_DEBUG "${Poppler_LIBRARY_DEBUG}")
+        endif()
+        unset(Poppler_DLL_DEBUG CACHE)
+      else()
+        set_target_properties(Poppler::poppler PROPERTIES IMPORTED_LOCATION_DEBUG "${Poppler_LIBRARY_DEBUG}" IMPORTED_IMPLIB_DEBUG "${Poppler_LIBRARY_DEBUG}")
+      endif()
+    endif()
+    if(NOT Poppler_LIBRARY_RELEASE AND NOT Poppler_LIBRARY_DEBUG)
+      set_property(TARGET Poppler::poppler APPEND PROPERTY IMPORTED_LOCATION "${Poppler_LIBRARY}")
+    endif()
+
+    set(_poppler_additional_libs "")
+    set(Poppler_ADDITIONAL_DEPENDENCIES "" CACHE STRING "Additional libraries not found by CMake")
+    MARK_AS_ADVANCED(Poppler_ADDITIONAL_DEPENDENCIES)
+
+    if (Poppler_NEEDS_FONTCONFIG)
+      find_package(Fontconfig)
+      list(APPEND _poppler_additional_libs "${FONTCONFIG_LIBRARIES}")
+    endif ()
+    if (Poppler_ADDITIONAL_DEPENDENCIES)
+      list(APPEND _poppler_additional_libs "${Poppler_ADDITIONAL_DEPENDENCIES}")
+    endif ()
+    set_target_properties(Poppler::poppler PROPERTIES INTERFACE_LINK_LIBRARIES "${_poppler_additional_libs}")
+  endif ()
+endif ()
+
+unset(_POPPLER_x86)

@@ -1,5 +1,5 @@
 if(WIN32)
-	get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
+	get_target_property(_qmake_executable Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
 	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
 	add_custom_command(TARGET texstudio POST_BUILD
@@ -45,15 +45,24 @@ if(WIN32)
 	texstudio_copy_all_files("${CMAKE_SOURCE_DIR}/utilities/dictionaries" "$<TARGET_FILE_DIR:texstudio>/dictionaries")
 	texstudio_copy_all_files("${CMAKE_SOURCE_DIR}/utilities/manual" "$<TARGET_FILE_DIR:texstudio>/help")
 	texstudio_copy_all_files("${CMAKE_SOURCE_DIR}/templates" "$<TARGET_FILE_DIR:texstudio>/templates")
-	if(Poppler_FOUND)
-		get_filename_component(POPPLER_LIB_DIR ${Poppler_Qt5_LIBRARY} DIRECTORY)
-		get_filename_component(POPPLER_LIB_NAME ${Poppler_Qt5_LIBRARY} NAME)
-		string(REPLACE ".lib" ".dll" POPPLER_LIB_NAME ${POPPLER_LIB_NAME})
-		find_file(Poppler_Qt5_DLL ${POPPLER_LIB_NAME} PATHS ${POPPLER_LIB_DIR}/.. ${POPPLER_LIB_DIR}/../bin PATH_SUFFIXES bin Debug Release x86 x64)
+	if(Poppler_qt${QT_VERSION_MAJOR}_FOUND)
+		get_target_property(PopplerQtDllDebug Poppler::poppler-qt${QT_VERSION_MAJOR} IMPORTED_LOCATION_DEBUG)
+		get_target_property(PopplerQtDllRelease Poppler::poppler-qt${QT_VERSION_MAJOR} IMPORTED_LOCATION_RELEASE)
 		add_custom_command(TARGET texstudio POST_BUILD
-			COMMAND "${CMAKE_COMMAND}" ARGS -E copy_if_different ${Poppler_Qt5_DLL} "$<TARGET_FILE_DIR:texstudio>"
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different $<$<CONFIG:Debug>:${PopplerQtDllDebug}> $<$<NOT:$<CONFIG:Debug>>:${PopplerQtDllRelease}> $<TARGET_FILE_DIR:texstudio>
 		)
 	endif()
 	install(TARGETS texstudio RUNTIME DESTINATION .)
 	install(DIRECTORY "$<TARGET_FILE_DIR:texstudio>/" DESTINATION .)
 endif(WIN32)
+
+
+macro(qt5_copy_dll APP DLL)
+    # find the release *.dll file
+    get_target_property(Qt5_${DLL}Location Qt5::${DLL} LOCATION)
+    # find the debug *d.dll file
+    get_target_property(Qt5_${DLL}LocationDebug Qt5::${DLL} IMPORTED_LOCATION_DEBUG)
+
+    add_custom_command(TARGET ${APP} POST_BUILD
+       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<$<CONFIG:Debug>:${Qt5_${DLL}LocationDebug}> $<$<NOT:$<CONFIG:Debug>>:${Qt5_${DLL}Location}> $<TARGET_FILE_DIR:${APP}>)
+endmacro()

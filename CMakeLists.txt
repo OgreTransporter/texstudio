@@ -16,7 +16,11 @@ if(MSVC)
 	add_compile_options(/wd4267 /wd4244)
 endif()
 
-find_package(Qt5 COMPONENTS Core Network Xml Svg Script PrintSupport Concurrent Widgets UiTools DBus REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Network Xml Svg PrintSupport Concurrent Widgets UiTools DBus Qml REQUIRED)
+if(${QT_VERSION_MAJOR} EQUAL 6)
+	find_package(Qt6 COMPONENTS Core5Compat REQUIRED)
+endif()
 
 # Source
 add_subdirectory(src)
@@ -36,6 +40,7 @@ set(RESOURCE_FILES
 set(TRANSLATION_FILES
 	translation/texstudio_ar.ts
     translation/texstudio_br.ts
+    translation/texstudio_ca.ts
     translation/texstudio_cs.ts
     translation/texstudio_de.ts
     translation/texstudio_el.ts
@@ -44,10 +49,12 @@ set(TRANSLATION_FILES
     translation/texstudio_fr.ts
     translation/texstudio_hu.ts
     translation/texstudio_id_ID.ts
+    translation/texstudio_ie.ts
     translation/texstudio_it.ts
     translation/texstudio_ja.ts
     translation/texstudio_ko.ts
     translation/texstudio_ko_KR.ts
+    translation/texstudio_nb_NO.ts
     translation/texstudio_nl.ts
     translation/texstudio_pl.ts
     translation/texstudio_pt.ts
@@ -155,7 +162,11 @@ add_subdirectory(src/tests)
 
 # Build texstudio application
 add_executable(texstudio ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES} ${FORM_FILES})
-target_link_libraries(texstudio PUBLIC Qt5::Core Qt5::Network Qt5::Xml Qt5::Svg Qt5::Script Qt5::PrintSupport Qt5::Concurrent Qt5::Widgets Qt5::UiTools Qt5::DBus)
+target_link_libraries(texstudio PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Xml Qt${QT_VERSION_MAJOR}::Svg Qt${QT_VERSION_MAJOR}::PrintSupport Qt${QT_VERSION_MAJOR}::Concurrent Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::UiTools Qt${QT_VERSION_MAJOR}::DBus Qt${QT_VERSION_MAJOR}::Qml)
+if(${QT_VERSION_MAJOR} EQUAL 6)
+	target_link_libraries(texstudio PUBLIC Qt6::Core5Compat REQUIRED)
+endif()
+
 target_include_directories(texstudio PUBLIC ${INC_DIRECTORIES})
 target_compile_definitions(texstudio PUBLIC ${ADDITIONAL_DEFINITIONS})
 if(Hunspell_FOUND)
@@ -176,17 +187,15 @@ if(ZLIB_FOUND)
 	target_include_directories(texstudio PUBLIC ${ZLIB_INCLUDE_DIR})
 	target_link_libraries(texstudio ${ZLIB_LIBRARIES})
 endif()
-find_package(Poppler)
-if(Poppler_FOUND)
-	message(STATUS "${Poppler_DEFINITIONS}")
-	target_link_libraries(texstudio PUBLIC Poppler::Qt5)
-	target_compile_options(texstudio PUBLIC ${Poppler_DEFINITIONS})
+find_package(Poppler COMPONENTS qt${QT_VERSION_MAJOR})
+if(Poppler_qt${QT_VERSION_MAJOR}_FOUND)
+	target_link_libraries(texstudio PUBLIC Poppler::poppler-qt${QT_VERSION_MAJOR})
 else()
 	target_compile_options(texstudio PUBLIC -DNO_POPPLER_PREVIEW)
 	message(STATUS "Internal pdf previewer disabled as you wish.")
 endif()
 if(${TEXSTUDIO_ENABLE_TESTS})
-	target_link_libraries(texstudio PUBLIC Qt5::Test)
+	target_link_libraries(texstudio PUBLIC Qt${QT_VERSION_MAJOR}::Test)
 	target_include_directories(texstudio PUBLIC src/tests)
 else()
 	target_compile_options(texstudio PUBLIC -DNO_TESTS)
@@ -194,7 +203,7 @@ endif()
 if(WIN32)
 	target_link_libraries(texstudio PUBLIC Shlwapi)
 	if(MSVC)
-		get_filename_component(QT_BIN ${Qt5_DIR}/../../../bin/ ABSOLUTE)
+		get_filename_component(QT_BIN ${Qt${QT_VERSION_MAJOR}_DIR}/../../../bin/ ABSOLUTE)
 		file(TO_NATIVE_PATH "${QT_BIN}" QT_BIN)
 		set(QT_MSVC_DEBUGGER_ENV ${CMAKE_BINARY_DIR}/texstudio.vcxproj.user)
 		file(WRITE ${QT_MSVC_DEBUGGER_ENV} "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
